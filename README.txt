@@ -29,5 +29,5 @@ no browser errors, HTTP requests or horizontal overflow. Independent user
 acceptance is still pending. The next step is another person's browser feedback.
 
 The cockpit header shows MyScientist / Cockpit and a grey IDLE placeholder.
-The icon strip scrolls horizontally; the toolbar names the selected board and
+The full-width icon strip only scrolls when its contents do not fit; the toolbar names the selected board and
 provides Reload and New tab controls. Board content scrolls below the header.
