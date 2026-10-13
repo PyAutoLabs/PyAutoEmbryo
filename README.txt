@@ -27,3 +27,7 @@ Optional agent testing is described separately in the full local tryout kit.
 Validation: empty and connected pages checked at 1440px and 390px widths;
 no browser errors, HTTP requests or horizontal overflow. Independent user
 acceptance is still pending. The next step is another person's browser feedback.
+
+The cockpit header shows MyScientist / Cockpit and a grey IDLE placeholder.
+The icon strip scrolls horizontally; the toolbar names the selected board and
+provides Reload and New tab controls. Board content scrolls below the header.
