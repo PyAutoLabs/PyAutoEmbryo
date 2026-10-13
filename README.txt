@@ -5,6 +5,9 @@ fictional Spectra project. Open empty-preview.html to see the starting state.
 No coding assistant, login, Python installation or network access is required
 for viewing and expanding these pages. External links are examples, not services.
 
+Use the top icon bar to visit Scientist or an organ. Inactive organs show their
+existing description and a copyable setup prompt; selecting one performs no setup.
+
 Try these steps:
 1. Expand Spectra and its software/resource cards.
 2. Look at the optional organ choices and their suggested setup prompts.
