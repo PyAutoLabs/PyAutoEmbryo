@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Scientist Dashboard</title><style>:root{color-scheme:light dark;--bg:#fff;--fg:#1f2328;--muted:#59636e;
+ --board-max:77.5rem;--board-gutter:1rem;--board-measure:65ch;
+ --line:#d8dee4;--btn:#f6f8fa;--ok:#1a7f37;--warn:#9a6700;--bad:#d1242f;
+ --accent:#0b6fa4;--tint:#0b6fa414;--edge:#0b6fa43d;
+ /* the ink that READS on a solid --accent fill: the accent is a dark ink on
+    the light scheme, so white sits on it; on the dark scheme the accent is
+    the bright end of the pair and the page's own ground is what reads. */
+ --accent-ink:#fff;
+ --hero-lift:#092e43;--hero-base:#00070d;--glow:#38bdf8;
+ --glow2:#38bdf8}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#f0f6fc;
+ --muted:#9198a1;--line:#2c333c;--btn:#151b23;--ok:#3fb950;--warn:#d29922;
+ --bad:#f85149;--accent:#5ec7f5;--tint:#5ec7f51f;
+ --edge:#5ec7f547;--accent-ink:#0d1117}}
+*{box-sizing:border-box}
+/* Wrapping is the page DEFAULT, not a per-component opt-in. These boards are
+   read on phones, and every one of them prints run URLs, dotted test ids and
+   long file paths — a single unbreakable token in any element a renderer adds
+   itself (a reasons list, a footer, a details block) spills past the right
+   edge and gives the WHOLE page a horizontal scroll. `overflow-wrap` is
+   inherited, so setting it here covers markup this module has never seen.
+   The three max-width/overflow rules do the same job for the things that
+   cannot be wrapped: an image, a table, a code block. */
+body{margin:0 auto;max-width:var(--board-max);padding:0 var(--board-gutter) 4rem;background:var(--bg);
+ color:var(--fg);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",
+ Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;
+ overflow-wrap:anywhere}
+/* The outer maximum includes gutters (border-box); it never sets a minimum
+   viewport width. Data uses the available space, prose has its own measure.
+   Match the existing inset-hero breakpoint rather than adding another step.
+   See docs/board-sizing.md for consumer responsibilities and adoption. */
+@media(min-width:46rem){:root{--board-gutter:1.5rem}}
+:where(p,.board-prose){max-width:var(--board-measure)}
+/* Masthead text and status panels occupy their full component width. */
+.hero p,.verdict{max-width:none}
+img,svg,table{max-width:100%}
+pre{overflow-x:auto}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+/* The accent is the page's *type* colour, not just its link colour: the
+   things that give a page its shape — headings, disclosure summaries, code
+   spans, the emphasised head of a row — are all set in the organ's hue, so
+   the page reads as its organ instead of as grey GitHub chrome. Semantics
+   are untouched: anything carrying a class (ok/warn/bad, the pills, muted)
+   keeps the colour that class means. */
+b:not([class]),strong:not([class]){color:var(--accent)}
+.muted{color:var(--muted)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+/* A bare list is page text, not a quotation. The UA's 40px indent steps it in
+   from every other block on the page — measured on the Heart board, the
+   evidence-gap bullets started at x=56 against a 16px body margin, which
+   reads as a stray inset column on a phone. The lists that are layout rather
+   than prose (.stats, .boards, ul.det) set their own padding and win on
+   specificity. */
+ul,ol{padding-left:1.15rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
+ color:var(--accent);background:var(--tint);border:1px solid var(--edge);
+ padding:.05em .35em;border-radius:5px}
+/* --- hero: the logo, rendered as type ---------------------------------- */
+.hero{margin:0 calc(-1 * var(--board-gutter)) 1.4rem;padding:2.1rem 1.4rem 1.7rem;position:relative;
+ overflow:hidden;text-align:center;color:#fff;background:var(--hero-base);
+ background-image:radial-gradient(78% 104% at 50% 14%,
+  var(--hero-lift) 0%,var(--hero-base) 72%)}
+@media(min-width:46rem){.hero{margin:1rem 0 1.6rem;border-radius:16px}}
+.hero::after{content:"";position:absolute;left:12%;right:12%;bottom:0;
+ height:2px;background:linear-gradient(90deg,transparent,var(--glow),
+ transparent);opacity:.75}
+/* The mark carries its own ring, so the frame is light and glow only —
+   the logos set their glyph on black with a halo, not in a chip. */
+.orb{display:block;width:5.6rem;height:5.6rem;margin:0 auto .75rem;
+ color:var(--glow);filter:drop-shadow(0 0 9px #38bdf87a)}
+.orb svg{display:block;width:100%;height:100%}
+.hero h1{margin:0;font-size:1.85rem;line-height:1.1;font-weight:700;
+ letter-spacing:-.022em;color:#fff}
+/* Two wordmarks run their organ name as a gradient; for the rest --glow2
+   repeats --glow, so the same rule paints a flat colour. */
+.hero h1 b{font-weight:700;color:var(--glow);
+ background:linear-gradient(96deg,var(--glow),var(--glow2));
+ -webkit-background-clip:text;background-clip:text}
+@supports(-webkit-background-clip:text){
+ .hero h1 b{-webkit-text-fill-color:transparent}}
+.hero .kind{display:block;margin-top:.5rem;font-size:.66rem;font-weight:600;
+ letter-spacing:.26em;text-transform:uppercase;color:#ffffffa6}
+/* The hairline with a lit dot at its centre: every logo separates wordmark
+   from tagline with one, and it is the detail that reads as "same mark". */
+.hero .rule{position:relative;width:11.5rem;height:1px;margin:1rem auto .75rem;
+ background:linear-gradient(90deg,transparent,var(--glow),transparent);
+ opacity:.7}
+.hero .rule::after{content:"";position:absolute;left:50%;top:50%;
+ width:.4rem;height:.4rem;margin:-.2rem 0 0 -.2rem;border-radius:50%;
+ background:var(--glow);box-shadow:0 0 7px 1px var(--glow)}
+.hero .tag{margin:0;font-size:.63rem;font-weight:600;
+ letter-spacing:.3em;text-transform:uppercase;color:var(--glow);opacity:.9}
+.lede{margin:0 0 .9rem}
+/* Section links share a shape whether or not the owner has a useful count. */
+.board-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));
+ gap:.75rem;margin:1.5rem 0;min-width:0}
+@media(min-width:64rem){
+ .board-nav[style]{grid-template-columns:repeat(var(--nav-columns),minmax(0,1fr))}}
+.board-nav-card{display:flex;flex-direction:column;justify-content:center;gap:.25rem;
+ min-width:0;min-height:5.5rem;padding:1rem;border:1px solid var(--line);
+ border-top:3px solid var(--accent);border-radius:12px;background:var(--btn);
+ color:var(--fg);text-decoration:none}
+.board-nav-card:hover{background:var(--tint);text-decoration:none;border-color:var(--accent)}
+.board-nav-card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.board-nav-count{font-size:1.8rem;font-weight:700;line-height:1.15;color:var(--accent)}
+.board-nav-label{font-weight:650}.board-nav-context{font-size:.8rem;color:var(--muted)}
+
+/* Shared major-section disclosures; owner-provided summaries stay visible. */
+details.board-section{margin:1rem 0;border:1px solid var(--line);border-radius:10px;padding:0}
+.board-section>summary{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;padding:1rem;cursor:pointer;list-style:none;min-height:48px}
+.board-section>summary::-webkit-details-marker{display:none}
+.board-section>summary::before{content:"▸";color:var(--accent);flex:none}
+.board-section[open]>summary::before{content:"▾"}
+.board-section>summary>h2{display:inline;margin:0;padding:0;border:0;flex:1;min-width:0;font-size:1.15rem}
+.board-section>summary>h2::after{display:none}
+.board-section>summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.board-section-body{padding:0 1rem 1rem;min-width:0}
+.section-badge{font-size:.8rem;border:1px solid currentColor;border-radius:999px;padding:.15rem .55rem;white-space:normal}
+.section-status-red{color:#b42318}.section-status-yellow{color:#8a5700}.section-status-green{color:#18733c}
+.section-status-stale,.section-status-unknown{color:var(--muted)}
+@media(prefers-color-scheme:dark){.section-status-red{color:#ff9188}.section-status-yellow{color:#eac15c}.section-status-green{color:#7bd49c}}
+@media print{.board-section-body{display:block!important}.board-section>summary{break-after:avoid}}
+
+/* --- sections ---------------------------------------------------------- */
+h2{font-size:1.1rem;margin:2.1rem 0 .3rem;padding:0 0 .35rem;font-weight:650;
+ position:relative;color:var(--accent);border-bottom:2px solid var(--edge)}
+/* The hero's lit rule, quieted and reused: the hairline under a section
+   starts at full accent and fades into the edge tone. Purely the ::after,
+   so a browser that skips it still gets the plain hairline. */
+h2::after{content:"";position:absolute;left:0;bottom:-2px;width:44%;height:2px;
+ background:linear-gradient(90deg,var(--accent),var(--accent) 15%,transparent)}
+h2 a{color:inherit}
+/* The heading is the accent; its parenthetical stays a quiet aside rather
+   than competing at the same weight. */
+h2 .muted{font-weight:400}
+h3{font-size:.98rem;margin:1.3rem 0 .2rem;font-weight:650;color:var(--accent)}
+/* --- rows -------------------------------------------------------------- */
+.task{display:flex;gap:.6rem;align-items:flex-start;padding:.45rem .35rem;
+ margin:0 -.35rem;border-bottom:1px solid var(--line);border-radius:7px}
+.task:hover{background:var(--tint);box-shadow:inset 2px 0 0 var(--accent)}
+.task p{margin:.25rem 0 0;flex:1;min-width:0}
+button.copy{flex:0 0 auto;width:2.6rem;height:2.6rem;font-size:1.1rem;
+ border:1px solid var(--edge);border-radius:9px;background:var(--tint);
+ cursor:pointer;color:var(--accent);transition:border-color .12s,color .12s}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy.ok{color:var(--ok);border-color:var(--ok);background:transparent}
+button.copy.term{font-size:.95rem}
+/* The owner supplies meaning and destinations; the family owns the controls. */
+.orchestration-panel{border:1px solid var(--line);border-radius:16px;padding:1.5rem;
+ margin:1.5rem 0;background:linear-gradient(120deg,var(--tint),var(--bg));min-width:0}
+.orchestration-head{display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:space-between;align-items:start}
+.orchestration-panel h2{margin:0;border:0;padding:0;font-size:1.45rem}
+.orchestration-panel h2:after{display:none}
+h2.prompt-heading.prompt-heading{font-size:clamp(.875rem,3.2vw,1.45rem);font-weight:400;
+line-height:1.35;white-space:nowrap;letter-spacing:normal;border:0;padding:0;margin:1rem 0}
+h2.prompt-heading strong{font-weight:700}
+h2.prompt-heading:after{display:none}
+.orchestration-panel h2.prompt-heading{margin:0}
+.orchestration-head p{margin:.5rem 0 1rem}
+.orchestration-links{display:flex;flex-wrap:wrap;gap:.5rem;max-width:100%}
+.orchestration-links a{display:inline-block;padding:.5rem .75rem;border:1px solid var(--line);
+ border-radius:8px;background:var(--bg);font-weight:600}
+.orchestration-controls{display:flex;gap:1rem;align-items:end;flex-wrap:wrap;margin:.75rem 0}
+.orchestration-direction{flex:1;min-width:min(100%,15rem)}
+.orchestration-panel label{display:block;font-weight:600;margin-bottom:.35rem}
+.orchestration-panel textarea{display:block;width:100%;max-width:100%;resize:vertical;
+ box-sizing:border-box;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);
+ border-radius:8px;padding:.75rem;white-space:pre-wrap}
+.orchestration-panel [data-orchestration-prompt]{margin-top:.75rem;font-size:.9rem}
+.orchestration-copy{font:inherit;font-weight:650;background:var(--accent);color:var(--bg);
+ border:0;border-radius:8px;padding:.85rem 1rem;cursor:pointer;min-height:44px;max-width:100%}
+.orchestration-panel :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.orchestration-status{margin:.5rem 0 0;color:var(--muted)}
+.orchestration-status:empty{display:none}
+.orchestration-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem 1rem;font-size:.8rem}
+.orchestration-footer>[data-orchestration-preview]{grid-column:1/-1;grid-row:1;margin:0}
+.orchestration-footer>[data-orchestration-preview]>summary{width:max-content;max-width:100%}
+.orchestration-freshness{grid-column:2;grid-row:1;align-self:start;display:flex;flex-wrap:wrap;gap:.35rem .75rem;align-items:baseline}
+.orchestration-freshness details{margin:0;padding:0;border:0;background:none}
+.orchestration-freshness summary{font:inherit;color:inherit;cursor:pointer}
+.orchestration-freshness time{display:block;font-size:.75rem}
+.orchestration-freshness[data-freshness="green"]{color:var(--ok)}
+.orchestration-freshness[data-freshness="yellow"]{color:var(--warn)}
+.orchestration-freshness[data-freshness="red"]{color:var(--bad)}
+.orchestration-freshness[data-freshness="grey"]{color:var(--muted)}
+.orchestration-freshness a{font:inherit}
+@media(max-width:46rem){.orchestration-panel{padding:1rem}.orchestration-head{display:block}
+ .orchestration-copy{width:100%}.orchestration-links{margin-bottom:1rem}
+ .orchestration-footer{display:block}.orchestration-freshness{margin-top:.5rem}}
+
+/* A copy button with a WORDED face is a chip, not an icon. The rule above is
+   a fixed 2.6rem square — right for a bare clipboard glyph, a trap for a
+   label: the text wraps inside 42px into a one-word-per-line column and
+   spills out of its own box (observed on the health board's "clear them all"
+   line). Size to the label instead, and hold it on one line the way `.pill`
+   does — a chip that will not fit is elided, never allowed to push the page
+   sideways. `vertical-align:bottom` because `overflow:hidden` moves an
+   inline-block's baseline to its bottom edge. */
+button.copy.text{width:auto;height:auto;max-width:100%;padding:.34rem .62rem;
+ font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;
+ text-overflow:ellipsis;vertical-align:bottom}
+button.more{display:block;width:100%;margin:.7rem 0;padding:.55rem;
+ border:1px dashed var(--edge);border-radius:9px;background:transparent;
+ color:var(--muted);cursor:pointer;font:inherit;font-size:.9em}
+button.more:hover{color:var(--accent);border-style:solid}
+details{margin:.5rem 0}
+summary{cursor:pointer;font-weight:600;padding:.4rem 0;color:var(--accent)}
+summary::marker{color:var(--accent)}
+/* --- facet pills: the backlog, scannable by colour --------------------- */
+.facets{color:var(--muted);font-size:.85em}
+.tags{display:block;margin-top:.32rem;line-height:1.9}
+/* A pill is a LABEL, and a label that will not fit is elided, never allowed
+   to push the page sideways. `nowrap` is what makes a chip read as a chip, so
+   it is also the one thing the page-wide wrap guard above cannot reach: an
+   over-long value (a board handing a whole log sentence to a facet) used to
+   run a chip a thousand pixels wide. The row's prose carries the meaning; the
+   chip carries the word. `vertical-align:bottom` because `overflow:hidden`
+   moves an inline-block's baseline to its bottom edge. */
+.pill{display:inline-block;max-width:100%;padding:.06em .5em;border-radius:999px;
+ font-size:.74em;font-weight:650;letter-spacing:.015em;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis;
+ vertical-align:bottom;border:1px solid var(--edge);background:var(--tint);
+ color:var(--accent)}
+.pill+.pill{margin-left:.28rem}
+.pill.n{border-color:var(--line);background:var(--btn);color:var(--muted)}
+.pill.w{border-color:transparent;background:var(--btn);color:var(--muted);
+ font-size:.7em;letter-spacing:.09em;text-transform:uppercase}
+.pill.w.y{color:var(--warn);border-color:var(--warn);background:transparent}
+.pill.g{border-color:var(--ok);background:transparent;color:var(--ok)}
+.pill.y{border-color:var(--warn);background:transparent;color:var(--warn)}
+.pill.r{border-color:var(--bad);background:transparent;color:var(--bad)}
+/* --- stat strip -------------------------------------------------------- */
+.stats{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 1rem;padding:0;
+ list-style:none}
+.stats li{flex:1 1 auto;min-width:5.2rem;padding:.5rem .6rem;text-align:center;
+ border:1px solid var(--line);border-radius:10px;background:var(--btn)}
+.stats b{display:block;font-size:1.15rem;line-height:1.2;color:var(--accent);
+ font-variant-numeric:tabular-nums}
+.stats span{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+ color:var(--accent);opacity:.75}
+/* --- verdict banner ---------------------------------------------------- */
+.verdict{margin:0 0 1rem;padding:.7rem .85rem;border-radius:10px;
+ border:1px solid var(--line);border-left:4px solid var(--muted);
+ background:var(--btn)}
+.verdict.ok{border-left-color:var(--ok)}
+.verdict.warn{border-left-color:var(--warn)}
+.verdict.bad{border-left-color:var(--bad)}
+.verdict b{display:block;font-size:1.02rem}
+.verdict.ok b{color:var(--ok)}
+.verdict.warn b{color:var(--warn)}
+.verdict.bad b{color:var(--bad)}
+/* --- tables ------------------------------------------------------------ */
+table.recent{width:100%;border-collapse:collapse;font-size:.95em}
+table.recent td{border-bottom:1px solid var(--line);
+ padding:.45rem .4rem .45rem 0;vertical-align:top}
+table.recent tr:hover td{background:var(--tint)}
+table.recent td.when{white-space:nowrap;color:var(--muted);
+ font-variant-numeric:tabular-nums}
+table.recent td.what{white-space:nowrap;color:var(--accent);font-size:.85em;
+ padding-top:.58rem;opacity:.8}
+table.recent td.pick{width:2.6rem;padding-right:0}
+table.recent button.copy{width:2.2rem;height:2.2rem;font-size:.95rem}
+/* On a phone a four-column row is not a row, it is a ribbon. Measured at a
+   375px viewport: the meta columns took 156px and the text was left 187 — half
+   the screen — so every entry wrapped into a tall thin column down the right
+   while the meta cells sat beside it as empty height. Below 34rem the row
+   stacks: the meta reads as one small header line with the button at its end,
+   and the text takes the full width underneath. */
+@media(max-width:34rem){
+ /* `:not([hidden])` is load-bearing: `display:flex` here outranks the UA
+    sheet's `[hidden]{display:none}`, which would reveal the whole paged
+    Recent feed at once. */
+ table.recent tr:not([hidden]){display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .5rem;
+  padding:.5rem 0;border-bottom:1px solid var(--line)}
+ table.recent td{display:block;width:auto;border-bottom:0;padding:0}
+ table.recent td.what{padding-top:0}
+ table.recent td.pick{width:auto;margin-left:auto}
+ table.recent td:not([class]){flex:1 0 100%;margin-top:.15rem}
+}
+/* --- the family footer: one chip per sibling board, in its own colour --- */
+.boards{display:flex;flex-wrap:wrap;gap:.4rem;margin:2.4rem 0 0;padding:0;
+ list-style:none;border-top:1px solid var(--line);padding-top:1rem}
+.boards a{display:inline-block;padding:.3rem .7rem;border-radius:999px;
+ font-size:.82em;font-weight:600;border:1px solid currentColor;opacity:.85}
+.boards a:hover{opacity:1;text-decoration:none}
+/* --- the review button: the batch-status box's `_status.render_html` ---- */
+a.go{display:inline-block;margin-top:.15rem;padding:.35rem .8rem;
+ border-radius:999px;font-size:.85em;font-weight:600;color:#fff;
+ background:var(--warn)}
+a.go:hover{opacity:.9;text-decoration:none}
+.mdsrc{font-size:.85em}
+.board-source-link{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;border-radius:6px;color:var(--muted);text-decoration:none}
+.board-source-link:hover{color:var(--accent);background:var(--btn)}
+.board-source-link:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.board-source-link svg{width:18px;height:18px;pointer-events:none}
+p:has(>.board-source-link){display:flex;align-items:center;gap:.5rem;max-width:none}
+p>.board-source-link{order:1;margin-left:auto}
+.board-section>summary>.board-source-link{margin-left:auto}
+.boards a[data-organ="broca"]{color:#8b3e68}@media(prefers-color-scheme:dark){.boards a[data-organ="broca"]{color:#f4a5ce}}.boards a[data-organ="brain"]{color:#2159c9}@media(prefers-color-scheme:dark){.boards a[data-organ="brain"]{color:#6f9dff}}.boards a[data-organ="mind"]{color:#0a7d72}@media(prefers-color-scheme:dark){.boards a[data-organ="mind"]{color:#2ee6cf}}.boards a[data-organ="cortex"]{color:#a5177d}@media(prefers-color-scheme:dark){.boards a[data-organ="cortex"]{color:#ff7ad9}}.boards a[data-organ="memory"]{color:#6b34d6}@media(prefers-color-scheme:dark){.boards a[data-organ="memory"]{color:#b37eff}}.boards a[data-organ="eyes"]{color:#7d6300}@media(prefers-color-scheme:dark){.boards a[data-organ="eyes"]{color:#f5c518}}.boards a[data-organ="ears"]{color:#96520b}@media(prefers-color-scheme:dark){.boards a[data-organ="ears"]{color:#ffc078}}.boards a[data-organ="heart"]{color:#b50f1a}@media(prefers-color-scheme:dark){.boards a[data-organ="heart"]{color:#ff6b73}}.boards a[data-organ="hands"]{color:#9a5400}@media(prefers-color-scheme:dark){.boards a[data-organ="hands"]{color:#ffa733}}.boards a[data-organ="pulse"]{color:#0b7a4b}@media(prefers-color-scheme:dark){.boards a[data-organ="pulse"]{color:#34d399}}.boards a[data-organ="insight"]{color:#995500}@media(prefers-color-scheme:dark){.boards a[data-organ="insight"]{color:#ffc163}}.boards a[data-organ="dna"]{color:#087b88}@media(prefers-color-scheme:dark){.boards a[data-organ="dna"]{color:#67e8f9}}.boards a[data-organ="nerves"]{color:#6420e0}@media(prefers-color-scheme:dark){.boards a[data-organ="nerves"]{color:#a27aff}}.boards a[data-organ="gut"]{color:#3f7a00}@media(prefers-color-scheme:dark){.boards a[data-organ="gut"]{color:#8fe01a}}.boards a[data-organ="organism"]{color:#0b6fa4}@media(prefers-color-scheme:dark){.boards a[data-organ="organism"]{color:#5ec7f5}}
+
+.organ-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;align-items:start;margin-top:1.25rem}
+.organ-card{min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.organ-card[open]{grid-column:1/-1}
+.organ-card>summary{cursor:pointer;min-height:64px;padding:1rem;display:flex;gap:.65rem;align-items:center;font-weight:700;list-style:none}
+.organ-card>summary::-webkit-details-marker{display:none}
+.organ-card>summary::after{content:'⌄';margin-left:auto}
+.organ-card[open]>summary::after{content:'⌃'}
+.organ-icon svg{width:30px;height:30px;display:block}
+.organ-status{font-size:.8rem;font-weight:500;color:var(--muted)}
+.organ-status[data-status=red]{color:var(--bad)}
+.organ-status[data-status=green]{color:var(--ok)}
+.organ-content{padding:0 1rem 1rem}
+.organ-content dl{margin:0;display:grid;gap:.6rem}
+.organ-content .summary-row{display:grid;grid-template-columns:9rem 1fr;gap:.75rem}
+.organ-content dt{font-size:.88rem;color:var(--muted)}
+.organ-content dd{margin:0;overflow-wrap:anywhere}
+.organ-content a{display:inline-block;min-height:44px}
+.organ-foot{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin:.8rem 0 0;font-size:.82rem;color:var(--muted);flex-wrap:wrap}
+.organ-foot a{min-height:44px;display:inline-flex;align-items:center}
+.project-card ul{list-style:none;padding:0;margin:0}
+.project-card li{margin:0 0 .35rem}
+.available-resource{border:1px dashed var(--line);border-radius:6px}
+.available-resource>summary{color:var(--muted);cursor:pointer;padding:.65rem;min-height:44px;box-sizing:border-box}
+.availability-label{font-size:.8rem;margin-left:.4rem}
+.available-resource-body{padding:0 .75rem .75rem 1.25rem}
+.available-resource-body label{display:block;margin-bottom:.35rem}
+.available-resource-body textarea{font:inherit;width:100%;box-sizing:border-box;resize:vertical;background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:.65rem}
+.organ-catalogue textarea,.organ-content textarea{width:100%;box-sizing:border-box;min-height:7rem;font:inherit}
+.organ-catalogue{margin-block:1rem}
+.organ-catalogue details>summary{color:var(--muted,#666)}
+.organ-grid :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media(max-width:64rem){.organ-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:40rem){.organ-grid{grid-template-columns:1fr}.organ-content .summary-row{grid-template-columns:1fr;gap:.15rem}}
+</style></head>
+<body><header class="hero"><span class="orb"><svg class="mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="20.4"/><path d="M17.0,9.8 C17.0,15.9 31.0,18.3 31.0,24.0 C31.0,29.7 17.0,32.1 17.0,38.2"/><path d="M31.0,9.8 C31.0,15.9 17.0,18.3 17.0,24.0 C17.0,29.7 31.0,32.1 31.0,38.2"/><path d="M18.6,13.6 L29.4,13.6 M16.9,18.4 L31.1,18.4 M16.9,29.6 L31.1,29.6 M18.6,34.4 L29.4,34.4"/><g fill="currentColor" stroke="none"><circle cx="17" cy="9.8" r="1.4"/><circle cx="31" cy="9.8" r="1.4"/><circle cx="17" cy="38.2" r="1.4"/><circle cx="31" cy="38.2" r="1.4"/></g></svg></span><h1><b>My Scientist</b><span class="kind">Overview</span></h1><div class="rule"></div><p class="tag">Describe. Build. Release.</p></header><section class="orchestration-panel" id="orchestration-scientist" aria-labelledby="orchestration-scientist-heading" data-orchestration-panel><div class="orchestration-head"><div><h2 class="prompt-heading" id="orchestration-scientist-heading">Work with your <strong>Scientist</strong></h2></div><nav class="orchestration-links" aria-label="Work on GitHub"><a href="https://github.com/ExampleResearch/MyScientist">MyScientist</a></nav></div><div class="orchestration-controls"><div class="orchestration-direction"><label for="orchestration-scientist-direction">Optional direction</label><textarea id="orchestration-scientist-direction" rows="2" data-orchestration-direction placeholder="Focus on a task, project or question"></textarea></div><button type="button" class="orchestration-copy" data-orchestration-copy>Copy check-in prompt</button></div><div class="orchestration-footer"><details data-orchestration-preview><summary>Read the prompt</summary><label class="sr-only" for="orchestration-scientist-prompt">Exact prompt to copy</label><textarea id="orchestration-scientist-prompt" data-orchestration-prompt readonly rows="8">Use this chat as an ongoing entry point to My Scientist. Read this Scientist checkout’s AGENTS.md, STARTER.md and REPORTING.md, then its explicit instance profile and project relationships. Consult only connected, unpaused organs and relevant project-owned sources. Do not assume optional organs, an agent harness or remote access are installed. Help connect existing projects using their canonical repository identities; ask about purpose, visibility and needed capabilities before changing setup. Keep missing evidence distinct from unconfigured organs.
+
+When I give no particular direction, provide a concise overview of the organism’s work across connected organs over the last 24 hours, plus its current position: significant progress, blockers, decisions needing my attention and useful next steps. Check evidence freshness and coverage, linking to the owning boards rather than reproducing every queue.
+
+For a summary over a given time period, use that period instead of the last 24 hours. State the start, end and timezone. Check dated records in every connected organ, distinguish completed outcomes from work still in progress and decisions awaiting me, and link the evidence. Deduplicate work spanning organs. A dashboard refresh is not a completed event; current snapshots alone cannot establish a historical summary. Report coverage gaps separately from verified inactivity, and separate events within the period from older blockers that remain open. Keep the summary high level. Determine overnight or recent activity on demand from those owner records and, when needed, workflow runs covering the requested interval. Do not rely on a fixed latest-run digest from Brain or create scheduled collection for this review. Account for pagination and unavailable history; distinguish failed, blocked, in-progress and absent runs without treating missing access as inactivity.
+
+When I supply a question, idea or task, make that the main focus. Help me clarify what I want to achieve and identify the appropriate organ, project and workflow. Explain the routing briefly and continue through it in this conversation where possible. Do not repeat the organism-wide review on every follow-up.
+
+Help me work through requests that span several organs. Identify dependencies, establish an appropriate order and keep decisions connected across the work. Respect each organ’s ownership of its records, judgments and execution procedures.
+
+When I ask about the organism itself, help me examine its architecture, workflows, missing capabilities or unnecessary complexity. Ground recommendations in the existing system and discuss concrete options and tradeoffs before proposing changes.
+
+Carry clearly authorized work through the appropriate skills, retaining decisions and approvals already given in this conversation. Ask when a missing decision materially changes the next step. Preserve applicable development, compute, community-reply, merge and release approval requirements.
+
+Keep authoritative task state, scientific records and execution in their owning repositories. After taking action, report the outcome, where any changes were recorded and what remains unresolved. Stop at the session deliverable without scheduling background follow-up.
+
+Work on GitHub:
+- My Scientist repository: https://github.com/ExampleResearch/MyScientist</textarea></details><div class="orchestration-freshness" data-freshness="grey"><span data-freshness-stamp>Last updated unavailable</span><span class="muted">Update unavailable</span></div></div><p class="orchestration-status" role="status" aria-live="polite"></p></section>
+<section id="projects" aria-labelledby="projects-heading"><h2 id="projects-heading">Projects</h2>
+<div class="organ-grid" aria-label="Project resources"><details class="organ-card project-card" id="project-spectra">
+<summary><span>Spectra</span><span class="organ-status">Scientific investigation</span></summary>
+<div class="organ-content"><p></p><dl><div class="summary-row"><dt>Software</dt><dd><ul><li data-resource="spectra-code"><a href="https://github.com/ExampleResearch/SpectralAnalysis">SpectralAnalysis</a></li></ul></dd></div><div class="summary-row"><dt>Workspaces</dt><dd><ul><li><details class="available-resource" data-capability="workspaces"><summary><span>spectra_workspace</span> <span class="availability-label">Available to add</span></summary><div class="available-resource-body"><p>Examples and working scripts for this project.</p><label for="setup-spectra-workspaces">Setup prompt</label><textarea id="setup-spectra-workspaces" readonly rows="8">Help me add workspaces to project &quot;Spectra&quot; (stable project ID: spectra). Suggested name: &quot;spectra_workspace&quot;; this is only a naming hint.
+
+Read this Scientist&#x27;s instructions, instance profile, project relationships and canonical Mind repository map. Inspect existing project-owned sources and any partial setup first; reuse them and preserve user records. Ask for missing purpose, location, ownership or visibility choices. Do not infer identity or access from names. Propose the smallest useful setup through the existing development workflow, including validation and how to resume it. Obtain approval before creating repositories, changing access, publishing or running science.
+
+Keep capability workspaces available until setup is validated. Then replace its available entry with an explicit connected resource using the canonical repository identity, and validate the Scientist configuration offline. Configure an owning organ separately if needed; a resource link is not organ activation or evidence of quality.</textarea></div></details></li></ul></dd></div><div class="summary-row"><dt>Tutorials</dt><dd><ul><li><details class="available-resource" data-capability="tutorials"><summary><span>HowToSpectra</span> <span class="availability-label">Available to add</span></summary><div class="available-resource-body"><p>Step-by-step teaching material.</p><label for="setup-spectra-tutorials">Setup prompt</label><textarea id="setup-spectra-tutorials" readonly rows="8">Help me add tutorials to project &quot;Spectra&quot; (stable project ID: spectra). Suggested name: &quot;HowToSpectra&quot;; this is only a naming hint.
+
+Read this Scientist&#x27;s instructions, instance profile, project relationships and canonical Mind repository map. Inspect existing project-owned sources and any partial setup first; reuse them and preserve user records. Ask for missing purpose, location, ownership or visibility choices. Do not infer identity or access from names. Propose the smallest useful setup through the existing development workflow, including validation and how to resume it. Obtain approval before creating repositories, changing access, publishing or running science.
+
+Keep capability tutorials available until setup is validated. Then replace its available entry with an explicit connected resource using the canonical repository identity, and validate the Scientist configuration offline. Configure an owning organ separately if needed; a resource link is not organ activation or evidence of quality.</textarea></div></details></li></ul></dd></div><div class="summary-row"><dt>Documentation</dt><dd><ul><li><details class="available-resource" data-capability="documentation"><summary><span>Spectra guide</span> <span class="availability-label">Available to add</span></summary><div class="available-resource-body"><p>Reference and usage guides.</p><label for="setup-spectra-documentation">Setup prompt</label><textarea id="setup-spectra-documentation" readonly rows="8">Help me add documentation to project &quot;Spectra&quot; (stable project ID: spectra). Suggested name: &quot;Spectra guide&quot;; this is only a naming hint.
+
+Read this Scientist&#x27;s instructions, instance profile, project relationships and canonical Mind repository map. Inspect existing project-owned sources and any partial setup first; reuse them and preserve user records. Ask for missing purpose, location, ownership or visibility choices. Do not infer identity or access from names. Propose the smallest useful setup through the existing development workflow, including validation and how to resume it. Obtain approval before creating repositories, changing access, publishing or running science.
+
+Keep capability documentation available until setup is validated. Then replace its available entry with an explicit connected resource using the canonical repository identity, and validate the Scientist configuration offline. Configure an owning organ separately if needed; a resource link is not organ activation or evidence of quality.</textarea></div></details></li></ul></dd></div><div class="summary-row"><dt>Assistants</dt><dd><ul><li><details class="available-resource" data-capability="assistants"><summary><span>spectra_assistant</span> <span class="availability-label">Available to add</span></summary><div class="available-resource-body"><p>A project-specific research assistant.</p><label for="setup-spectra-assistants">Setup prompt</label><textarea id="setup-spectra-assistants" readonly rows="8">Help me add assistants to project &quot;Spectra&quot; (stable project ID: spectra). Suggested name: &quot;spectra_assistant&quot;; this is only a naming hint.
+
+Read this Scientist&#x27;s instructions, instance profile, project relationships and canonical Mind repository map. Inspect existing project-owned sources and any partial setup first; reuse them and preserve user records. Ask for missing purpose, location, ownership or visibility choices. Do not infer identity or access from names. Propose the smallest useful setup through the existing development workflow, including validation and how to resume it. Obtain approval before creating repositories, changing access, publishing or running science.
+
+Keep capability assistants available until setup is validated. Then replace its available entry with an explicit connected resource using the canonical repository identity, and validate the Scientist configuration offline. Configure an owning organ separately if needed; a resource link is not organ activation or evidence of quality.</textarea></div></details></li></ul></dd></div><div class="summary-row"><dt>Profiling</dt><dd><ul><li><details class="available-resource" data-capability="profiling"><summary><span>spectra_profiling</span> <span class="availability-label">Available to add</span></summary><div class="available-resource-body"><p>Measure runtime and resource use.</p><label for="setup-spectra-profiling">Setup prompt</label><textarea id="setup-spectra-profiling" readonly rows="8">Help me add profiling to project &quot;Spectra&quot; (stable project ID: spectra). Suggested name: &quot;spectra_profiling&quot;; this is only a naming hint.
+
+Read this Scientist&#x27;s instructions, instance profile, project relationships and canonical Mind repository map. Inspect existing project-owned sources and any partial setup first; reuse them and preserve user records. Ask for missing purpose, location, ownership or visibility choices. Do not infer identity or access from names. Propose the smallest useful setup through the existing development workflow, including validation and how to resume it. Obtain approval before creating repositories, changing access, publishing or running science.
+
+Keep capability profiling available until setup is validated. Then replace its available entry with an explicit connected resource using the canonical repository identity, and validate the Scientist configuration offline. Configure an owning organ separately if needed; a resource link is not organ activation or evidence of quality.</textarea></div></details></li></ul></dd></div><div class="summary-row"><dt>Inference</dt><dd><ul><li><details class="available-resource" data-capability="inference"><summary><span>spectra_inference</span> <span class="availability-label">Available to add</span></summary><div class="available-resource-body"><p>Compare inference methods and results.</p><label for="setup-spectra-inference">Setup prompt</label><textarea id="setup-spectra-inference" readonly rows="8">Help me add inference to project &quot;Spectra&quot; (stable project ID: spectra). Suggested name: &quot;spectra_inference&quot;; this is only a naming hint.
+
+Read this Scientist&#x27;s instructions, instance profile, project relationships and canonical Mind repository map. Inspect existing project-owned sources and any partial setup first; reuse them and preserve user records. Ask for missing purpose, location, ownership or visibility choices. Do not infer identity or access from names. Propose the smallest useful setup through the existing development workflow, including validation and how to resume it. Obtain approval before creating repositories, changing access, publishing or running science.
+
+Keep capability inference available until setup is validated. Then replace its available entry with an explicit connected resource using the canonical repository identity, and validate the Scientist configuration offline. Configure an owning organ separately if needed; a resource link is not organ activation or evidence of quality.</textarea></div></details></li></ul></dd></div><div class="summary-row"><dt>Visualization</dt><dd><ul><li><details class="available-resource" data-capability="visualization"><summary><span>spectra_visualization</span> <span class="availability-label">Available to add</span></summary><div class="available-resource-body"><p>Review figures and visualization outputs.</p><label for="setup-spectra-visualization">Setup prompt</label><textarea id="setup-spectra-visualization" readonly rows="8">Help me add visualization to project &quot;Spectra&quot; (stable project ID: spectra). Suggested name: &quot;spectra_visualization&quot;; this is only a naming hint.
+
+Read this Scientist&#x27;s instructions, instance profile, project relationships and canonical Mind repository map. Inspect existing project-owned sources and any partial setup first; reuse them and preserve user records. Ask for missing purpose, location, ownership or visibility choices. Do not infer identity or access from names. Propose the smallest useful setup through the existing development workflow, including validation and how to resume it. Obtain approval before creating repositories, changing access, publishing or running science.
+
+Keep capability visualization available until setup is validated. Then replace its available entry with an explicit connected resource using the canonical repository identity, and validate the Scientist configuration offline. Configure an owning organ separately if needed; a resource link is not organ activation or evidence of quality.</textarea></div></details></li></ul></dd></div><div class="summary-row"><dt>Workspace tests</dt><dd><ul><li><details class="available-resource" data-capability="tests"><summary><span>spectra_workspace_test</span> <span class="availability-label">Available to add</span></summary><div class="available-resource-body"><p>Regression and smoke-test workspaces.</p><label for="setup-spectra-tests">Setup prompt</label><textarea id="setup-spectra-tests" readonly rows="8">Help me add workspace tests to project &quot;Spectra&quot; (stable project ID: spectra). Suggested name: &quot;spectra_workspace_test&quot;; this is only a naming hint.
+
+Read this Scientist&#x27;s instructions, instance profile, project relationships and canonical Mind repository map. Inspect existing project-owned sources and any partial setup first; reuse them and preserve user records. Ask for missing purpose, location, ownership or visibility choices. Do not infer identity or access from names. Propose the smallest useful setup through the existing development workflow, including validation and how to resume it. Obtain approval before creating repositories, changing access, publishing or running science.
+
+Keep capability tests available until setup is validated. Then replace its available entry with an explicit connected resource using the canonical repository identity, and validate the Scientist configuration offline. Configure an owning organ separately if needed; a resource link is not organ activation or evidence of quality.</textarea></div></details></li></ul></dd></div></dl></div></details></div></section>
+<h2 id="dashboards-heading">Dashboards</h2>
+<p>No organs connected. Add a connection when your project needs it.</p>
+<div id="dashboards" class="organ-grid" aria-label="Organ summaries"></div>
+<details class="organ-catalogue"><summary>Available organs</summary><details><summary>Brain · Available to add</summary><p>Orchestration</p><textarea readonly aria-label="Add brain">Help me add Brain (Orchestration) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Mind · Available to add</summary><p>Planning</p><textarea readonly aria-label="Add mind">Help me add Mind (Planning) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Cortex · Available to add</summary><p>Science</p><textarea readonly aria-label="Add cortex">Help me add Cortex (Science) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Memory · Available to add</summary><p>Knowledge</p><textarea readonly aria-label="Add memory">Help me add Memory (Knowledge) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Eyes · Available to add</summary><p>Visualization</p><textarea readonly aria-label="Add eyes">Help me add Eyes (Visualization) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Ears · Available to add</summary><p>Community</p><textarea readonly aria-label="Add ears">Help me add Ears (Community) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Heart · Available to add</summary><p>Tests</p><textarea readonly aria-label="Add heart">Help me add Heart (Tests) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Hands · Available to add</summary><p>Releases</p><textarea readonly aria-label="Add hands">Help me add Hands (Releases) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Pulse · Available to add</summary><p>Profiling</p><textarea readonly aria-label="Add pulse">Help me add Pulse (Profiling) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Insight · Available to add</summary><p>Inference</p><textarea readonly aria-label="Add insight">Help me add Insight (Inference) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>DNA · Available to add</summary><p>Environments</p><textarea readonly aria-label="Add dna">Help me add DNA (Environments) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Nerves · Available to add</summary><p>Configuration</p><textarea readonly aria-label="Add nerves">Help me add Nerves (Configuration) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Broca · Available to add</summary><p>Assistants</p><textarea readonly aria-label="Add broca">Help me add Broca (Assistants) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details><details><summary>Gut · Available to add</summary><p>Cleanup</p><textarea readonly aria-label="Add gut">Help me add Gut (Cleanup) to this Scientist. Read my existing profile, canonical map and Mind task. Confirm the purpose, repository identity and public board location; preview organ_lifecycle.py setup before applying. Keep it setup incomplete until connect_organ.py validates its published feed.</textarea></details></details>
+<noscript><p>Publication snapshot. Open an organ for its latest evidence.</p></noscript>
+
+<script type="application/json" id="scientist-snapshot">{"generated": "2026-10-13T19:19:11.033923+00:00", "owner": null, "boards": [], "instance": {"schema_version": 1, "name": "My Scientist", "repo": "MyScientist", "source_url": "https://github.com/ExampleResearch/MyScientist", "pages_url": "https://example.invalid/my-scientist/", "setup": [], "available": [{"key": "brain", "name": "Brain", "role": "Orchestration"}, {"key": "mind", "name": "Mind", "role": "Planning"}, {"key": "cortex", "name": "Cortex", "role": "Science"}, {"key": "memory", "name": "Memory", "role": "Knowledge"}, {"key": "eyes", "name": "Eyes", "role": "Visualization"}, {"key": "ears", "name": "Ears", "role": "Community"}, {"key": "heart", "name": "Heart", "role": "Tests"}, {"key": "hands", "name": "Hands", "role": "Releases"}, {"key": "pulse", "name": "Pulse", "role": "Profiling"}, {"key": "insight", "name": "Insight", "role": "Inference"}, {"key": "dna", "name": "DNA", "role": "Environments"}, {"key": "nerves", "name": "Nerves", "role": "Configuration"}, {"key": "broca", "name": "Broca", "role": "Assistants"}, {"key": "gut", "name": "Gut", "role": "Cleanup"}]}, "project_resources": {"schema_version": 1, "projects": [{"id": "spectra", "name": "Spectra", "kind": "scientific_project", "description": "", "groups": [{"relation": "software", "label": "Software", "resources": [{"id": "spectra-code", "name": "SpectralAnalysis", "links": [{"label": "Source", "url": "https://github.com/ExampleResearch/SpectralAnalysis"}], "repo": "spectra-code", "github": "ExampleResearch/SpectralAnalysis"}]}, {"relation": "workspaces", "label": "Workspaces", "resources": [], "available": [{"id": "workspaces", "name": "spectra_workspace", "purpose": "Examples and working scripts for this project."}]}, {"relation": "tutorials", "label": "Tutorials", "resources": [], "available": [{"id": "tutorials", "name": "HowToSpectra", "purpose": "Step-by-step teaching material."}]}, {"relation": "documentation", "label": "Documentation", "resources": [], "available": [{"id": "documentation", "name": "Spectra guide", "purpose": "Reference and usage guides."}]}, {"relation": "assistants", "label": "Assistants", "resources": [], "available": [{"id": "assistants", "name": "spectra_assistant", "purpose": "A project-specific research assistant."}]}, {"relation": "profiling", "label": "Profiling", "resources": [], "available": [{"id": "profiling", "name": "spectra_profiling", "purpose": "Measure runtime and resource use."}]}, {"relation": "inference", "label": "Inference", "resources": [], "available": [{"id": "inference", "name": "spectra_inference", "purpose": "Compare inference methods and results."}]}, {"relation": "visualization", "label": "Visualization", "resources": [], "available": [{"id": "visualization", "name": "spectra_visualization", "purpose": "Review figures and visualization outputs."}]}, {"relation": "tests", "label": "Workspace tests", "resources": [], "available": [{"id": "tests", "name": "spectra_workspace_test", "purpose": "Regression and smoke-test workspaces."}]}]}]}}</script>
+<script>const MAX_PROMPT_CHARS = 50000;
+function promptFits(text){
+  let count=0;for(const character of text){if(++count>MAX_PROMPT_CHARS)return false;}
+  return true;
+}
+function guardPrompt(text, button){
+  const panel=button.closest('[data-orchestration-panel]');
+  const statusId=panel?panel.id+'-budget-status':'prompt-budget-status';
+  let status=document.getElementById(statusId);
+  if(promptFits(text)){
+    if(status){if(status.dataset.url)URL.revokeObjectURL(status.dataset.url);status.remove();}
+    return true;
+  }
+  if(!status){status=document.createElement('p');status.id=statusId;
+    status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+    button.insertAdjacentElement('afterend',status);}
+  if(status.dataset.url)URL.revokeObjectURL(status.dataset.url);
+  status.textContent='Not copied: this request exceeds the 50,000-character budget. '+
+    'Download the complete request and attach the file to your coding chat. Nothing was cut off. ';
+  const link=document.createElement('a');
+  link.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));
+  status.dataset.url=link.href;link.download='dashboard-request.txt';
+  link.textContent='Download complete request';status.appendChild(link);
+  return false;
+}
+async function copyCmd(b){
+  const cmd=b.dataset.cmd;
+  if(!guardPrompt(cmd,b))return;
+  let copied=false;
+  try{await navigator.clipboard.writeText(cmd);copied=true;}
+  catch(e){const t=document.createElement("textarea");t.value=cmd;
+    document.body.appendChild(t);
+    try{t.select();copied=document.execCommand("copy")===true;}
+    catch(e){copied=false;}finally{t.remove();}}
+  const old=b.textContent;
+  b.textContent=copied?"\u2713":"Copy failed";
+  if(copied)b.classList.add("ok");
+  setTimeout(()=>{b.textContent=old;b.classList.remove("ok");},1200);}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button.copy");
+  if(b && guardPrompt(b.dataset.cmd,b))copyCmd(b);});
+function orchestrationSync(panel){
+  const preview=panel.querySelector('[data-orchestration-prompt]');
+  const direction=panel.querySelector('[data-orchestration-direction]').value.trim();
+  preview.value=preview.defaultValue+(direction?'\n\nOptional direction (user context):\n'+direction:'');
+  panel.querySelector('.orchestration-status').textContent='';
+  return preview.value;
+}
+document.addEventListener('input',event=>{
+  if(event.target.matches('[data-orchestration-direction]')){
+    orchestrationSync(event.target.closest('[data-orchestration-panel]'));
+  }
+});
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-orchestration-copy]');
+  if(!button)return;
+  const panel=button.closest('[data-orchestration-panel]');
+  const text=orchestrationSync(panel);
+  const status=panel.querySelector('.orchestration-status');
+  if(!guardPrompt(text,button))return;
+  let copied=false;
+  try{await navigator.clipboard.writeText(text);copied=true;}
+  catch(error){
+    const preview=panel.querySelector('[data-orchestration-prompt]');
+    panel.querySelector('[data-orchestration-preview]').open=true;
+    preview.focus();preview.select();
+    try{copied=document.execCommand('copy')===true;}catch(error){copied=false;}
+  }
+  // A slow permission response must not claim a subsequently edited prompt was copied.
+  if(panel.querySelector('[data-orchestration-prompt]').value!==text){
+    status.textContent=copied?'The previous prompt was copied. Copy again to include your latest direction.':
+      'Copy unavailable. Open the preview and select the current prompt to copy manually.';
+  }else{
+    status.textContent=copied?'Prompt copied. Paste it into your coding chat.':
+      'Copy unavailable. The full prompt is selected below; copy it manually.';
+  }
+});
+function updateDashboardFreshness(now=Date.now()){
+  document.querySelectorAll('.orchestration-freshness').forEach(footer=>{
+    const stamp=footer.querySelector('[data-refreshed-at]');
+    if(!stamp)return;
+    const age=now-Date.parse(stamp.dataset.refreshedAt);
+    const label=stamp.querySelector('[data-freshness-label]');
+    if(!Number.isFinite(age)||age<0){
+      footer.dataset.freshness='grey';
+      label.textContent='Last updated unavailable';
+      return;
+    }
+    const minutes=Math.floor(age/60000),hours=Math.floor(age/3600000),days=Math.floor(age/86400000);
+    const amount=days||hours||minutes;
+    const unit=days?'day':hours?'hour':'minute';
+    label.textContent='Last updated '+(minutes===0?'just now':amount+' '+unit+(amount===1?'':'s')+' ago');
+    footer.dataset.freshness=age<3600000?'green':age<86400000?'yellow':'red';
+  });
+}
+function startDashboardFreshness(){
+  updateDashboardFreshness();
+  if(document.querySelector('[data-refreshed-at]'))setInterval(updateDashboardFreshness,30000);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startDashboardFreshness,{once:true});
+else startDashboardFreshness();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateDashboardFreshness();});
+
+(function(){
+  if(typeof window==='undefined') return;
+  function reveal(){
+    var id;
+    try { id=decodeURIComponent(location.hash.slice(1)); } catch(e) { return; }
+    var target=id && document.getElementById(id);
+    if(!target) return;
+    for(var p=target;p;p=p.parentElement) if(p.tagName==='DETAILS') p.open=true;
+    requestAnimationFrame(function(){target.scrollIntoView({block:'start'});});
+  }
+  window.addEventListener('hashchange',reveal);
+  document.addEventListener('click',function(event){
+    var link=event.target.closest('a[href]');
+    if(link && link.hash && link.origin===location.origin && link.pathname===location.pathname)
+      setTimeout(reveal,0);
+  });
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',reveal);
+  else reveal();
+  var printed=[];
+  window.addEventListener('beforeprint',function(){
+    printed=Array.from(document.querySelectorAll('details:not([open])'));
+    printed.forEach(function(node){node.open=true;});
+  });
+  window.addEventListener('afterprint',function(){
+    printed.forEach(function(node){node.open=false;}); printed=[];
+  });
+})();
+</script><script>// Owner state stays authoritative. Validation/observation follow the cockpit v1 contract.
+const STATUSES = ["green", "yellow", "red", "stale", "grey"];
+const SEVERITIES = ["red", "yellow", "info"];
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function safeUrl(u) {
+  if (typeof u !== "string" || !/^https?:\/\//i.test(u)) return null;
+  try { const url = new URL(u); return url.hostname ? url.href : null; } catch (e) { return null; }
+}
+function age(iso) {
+  const t = Date.parse(iso);
+  if (isNaN(t)) return "unknown age";
+  let s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 60) return s + "s ago";
+  const m = Math.round(s / 60); if (m < 60) return m + "m ago";
+  const h = Math.round(m / 60); if (h < 48) return h + "h ago";
+  return Math.round(h / 24) + "d ago";
+}
+
+// Additive v1 metadata: older producers need no migration.
+const ITEM_STATES = ["healthy", "active", "stale", "blocked", "failed", "action_required", "unknown"];
+const ACTION_SAFETY = ["read_only", "requires_approval", "scientific_judgement", "never_automatic", "unclassified"];
+const oneLine = v => typeof v === "string" && v.trim() !== "" && !/[\r\n]/.test(v);
+function utcTime(v) {
+  if (typeof v !== "string" || !/T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)$/.test(v)) return NaN;
+  const t = Date.parse(v);
+  // Date.parse normalizes impossible dates such as February 30.
+  return Number.isFinite(t) && new Date(t).toISOString().slice(0, 19) === v.slice(0, 19) ? t : NaN;
+}
+function validate(d, organ = null) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return "not an object";
+  if (d.schema_version !== 1) return "schema_version " + d.schema_version;
+  if (!STATUSES.includes(d.status)) return "invalid status";
+  if (![d.organ, d.repo, d.pages_url, d.headline].every(oneLine)) return "missing identity or headline";
+  if (organ && (d.organ !== organ.organ.toLowerCase() || d.repo !== organ.repo)) return "wrong organ";
+  if (!Number.isFinite(utcTime(d.updated))) return "invalid updated timestamp";
+  if ("valid_until" in d && (!Number.isFinite(utcTime(d.valid_until)) || utcTime(d.valid_until) < utcTime(d.updated))) return "invalid valid_until";
+  if (!Array.isArray(d.items)) return "no items";
+  const ids = new Set();
+  for (const it of d.items) {
+    if (!it || !SEVERITIES.includes(it.severity) || !oneLine(it.text)) return "bad item";
+    for (const key of ["url", "prompt"]) if (it[key] != null && typeof it[key] !== "string") return "bad " + key;
+    for (const key of ["id", "reason", "decision", "recommended_action_id"]) if (key in it && !oneLine(it[key])) return "bad " + key;
+    if ("id" in it) { if (ids.has(it.id)) return "duplicate item id"; ids.add(it.id); }
+    if ("state" in it && !ITEM_STATES.includes(it.state)) return "bad item state";
+    if ("requires_human_decision" in it && typeof it.requires_human_decision !== "boolean") return "bad decision flag";
+    if (it.requires_human_decision && !oneLine(it.decision)) return "missing decision";
+    if ("actions" in it && !Array.isArray(it.actions)) return "bad actions";
+    const actions = new Set();
+    for (const action of it.actions || []) {
+      if (!action || ![action.id, action.label, action.target].every(oneLine)) return "bad action";
+      if (!["link", "command", "prompt"].includes(action.kind)) return "bad action kind";
+      if ("safety" in action && !ACTION_SAFETY.includes(action.safety)) return "bad action safety";
+      if (action.kind === "link" && !safeUrl(action.target)) return "bad action URL";
+      if (actions.has(action.id)) return "duplicate action id";
+      actions.add(action.id);
+    }
+    if ("recommended_action_id" in it && !actions.has(it.recommended_action_id)) return "missing recommended action";
+  }
+  return null;
+}
+
+// Pure observation model. Source health and transport/freshness are separate
+// facts. Missing expiry means no declared age policy, not infinite freshness.
+function observation(st = {}, now = Date.now()) {
+  const d = st.feed || st.lastGood || null;
+  const base = { feed: d, sourceStatus: d ? d.status : null, lastChecked: st.lastChecked || null };
+  if (!d) return { ...base, status: "grey", current: false, freshness: "unknown", reason: st.error || "waiting for first check" };
+  if (st.error || !st.feed) return { ...base, status: "stale", current: false, freshness: "unavailable", reason: st.error || "not checked this session" };
+  if (!Number.isFinite(utcTime(d.updated)) || utcTime(d.updated) > now) return { ...base, status: "grey", current: false, freshness: "unknown", reason: "source timestamp is invalid or in the future" };
+  if (d.valid_until && utcTime(d.valid_until) <= now) return { ...base, status: "stale", current: false, freshness: "expired", reason: "source freshness deadline passed" };
+  if (d.status === "stale") return { ...base, status: "stale", current: false, freshness: "expired", reason: "source reports stale evidence" };
+  if (d.status === "grey") return { ...base, status: "grey", current: false, freshness: "unknown", reason: "source reports insufficient evidence" };
+  return { ...base, status: d.status, current: true, freshness: d.valid_until ? "within_policy" : "unspecified", reason: null };
+}
+
+
+const DOMAIN_LABELS = {
+  brain: 'Coordination', mind: 'Tasks', cortex: 'Science', memory: 'Knowledge',
+  eyes: 'Figures', ears: 'Conversations', heart: 'Checks', hands: 'Releases',
+  pulse: 'Profiling', insight: 'Inference', dna: 'Compatibility', nerves: 'Configuration',
+  broca: 'Assistants', gut: 'Cleanup'
+};
+function concise(text) {
+  const words = String(text).trim().split(/\s+/);
+  const short = words.slice(0, 12).join(' ');
+  return short.slice(0, 130) + (words.length > 12 || short.length > 130 ? '…' : '');
+}
+function itemUrl(item, fallback) {
+  const action = (item.actions || []).find(a => a.kind === 'link' && a.id === item.recommended_action_id)
+    || (item.actions || []).find(a => a.kind === 'link');
+  return safeUrl(item.url) || safeUrl(action && action.target) || fallback;
+}
+function needsAttention(item) {
+  return item.requires_human_decision || ['failed', 'blocked', 'action_required', 'stale', 'unknown'].includes(item.state)
+    || (!item.state && ['red', 'yellow'].includes(item.severity));
+}
+function summaries(organ, view) {
+  const feed = view.feed;
+  const url = organ.url;
+  if (!feed) return [{ label: 'Evidence', text: 'Unavailable', url }];
+  if (!view.current) return [
+    { label: 'Evidence', text: view.reason || 'Not verified', url },
+    { label: 'Last known', text: feed.headline, url }
+  ];
+  const rows = [];
+  const attention = feed.items.filter(needsAttention).sort((a,b) =>
+    Number(!!b.requires_human_decision) - Number(!!a.requires_human_decision)
+    || (a.severity === 'red' ? -1 : 0) - (b.severity === 'red' ? -1 : 0));
+  if (attention.length) {
+    const item = attention[0];
+    rows.push({ label: item.requires_human_decision ? 'Your decision' : 'Needs attention',
+      text: item.requires_human_decision ? item.decision : item.text, url: itemUrl(item, url) });
+  } else {
+    rows.push({ label: 'Attention', text: feed.status === 'green' ? 'No action reported' :
+      feed.status === 'red' ? 'Review failing status' : 'Review current status', url });
+  }
+  const active = feed.items.find(item => item.state === 'active' && !attention.includes(item));
+  if (active) rows.push({ label: 'In progress', text: active.text, url: itemUrl(active, url) });
+  // The release owner already includes the version and event age in its headline.
+  // No other headline is promoted to "completed"; updated is never an event date.
+  if (!rows.some(row => row.text === feed.headline)) rows.push({
+    label: organ.key === 'hands' && /^v?\d{4}\.\d{1,2}\.\d{1,2}\.\d+\s*·/.test(feed.headline)
+      ? 'Latest release' : DOMAIN_LABELS[organ.key] || 'Current position', text: feed.headline, url
+  });
+  return rows.slice(0, 3);
+}
+function statusLabel(view) {
+  if (!view.current) return view.feed ? 'Not verified' : 'Unavailable';
+  if (view.feed.items.some(needsAttention)) return 'Needs attention';
+  if (view.feed.items.some(item => item.state === 'active')) return 'In progress';
+  return { green: 'No action reported', yellow: 'Review', red: 'Needs attention' }[view.status] || 'Unknown';
+}
+function summaryHtml(rows) {
+  return rows.map(row => `<div class="summary-row"><dt>${esc(row.label)}</dt><dd><a href="${esc(safeUrl(row.url) || '#')}" title="${esc(row.text)}">${esc(concise(row.text))}</a></dd></div>`).join('');
+}
+
+function cacheKey(organ, instance) {
+  // An independent instance must never consume another owner's basename-only
+  // cache. Retain that old key only for the existing unprofiled dashboard.
+  return instance
+    ? 'scientist:last-good:' + JSON.stringify([instance.source_url, organ.key, organ.repo, organ.url])
+    : 'pyauto-cockpit:last-good:' + organ.repo;
+}
+
+// ---- browser startup ----
+const snapshot = JSON.parse(document.getElementById('scientist-snapshot').textContent);
+const organStates = new Map();
+for (const organ of snapshot.boards) {
+  if (organ.paused) { organStates.set(organ.key, {}); continue; }
+  const identity = { organ: organ.name, repo: organ.repo };
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(cacheKey(organ, snapshot.instance))); } catch (_) {}
+  const lastGood = saved && !validate(saved.feed, identity) ? saved.feed :
+    organ.feed && !validate(organ.feed, identity) ? organ.feed : null;
+  organStates.set(organ.key, { lastGood });
+}
+function paint(organ) {
+  if (organ.paused) return; // retain server-rendered pause state; never use cached evidence
+  const view = observation(organStates.get(organ.key));
+  const card = document.getElementById('board-' + organ.key);
+  const badge = card.querySelector('.organ-status');
+  badge.textContent = (snapshot.instance ? 'Connected · ' : '') + statusLabel(view);
+  badge.dataset.status = view.status;
+  const list = card.querySelector('dl');
+  const markup = summaryHtml(summaries(organ, view));
+  if (list.innerHTML !== markup) {
+    // Keep a focused evidence link in place even when its text changes.
+    const links = [...list.querySelectorAll('a')];
+    const focused = links.indexOf(document.activeElement);
+    list.innerHTML = markup;
+    if (focused >= 0) (list.querySelectorAll('a')[focused] || card.querySelector('summary')).focus({ preventScroll: true });
+  }
+  const stamp = card.querySelector('[data-freshness]');
+  stamp.textContent = view.feed ? `${view.current ? 'Source updated' : 'Last known source'} ${age(view.feed.updated)}` : 'No verified evidence';
+  stamp.title = view.feed ? view.feed.updated : '';
+}
+let refreshing = false;
+async function refresh() {
+  if (refreshing) return;
+  refreshing = true;
+  try {
+    await Promise.all(snapshot.boards.map(async organ => {
+      if (organ.paused) return;
+      const st = organStates.get(organ.key);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(organ.url + 'state.json?t=' + Date.now(), { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error('Evidence unavailable');
+        const feed = await response.json();
+        if (validate(feed, { organ: organ.name, repo: organ.repo }) || (snapshot.instance && feed.pages_url.replace(/\/$/, '') !== organ.url.replace(/\/$/, ''))) throw new Error('Invalid evidence');
+        st.feed = feed; st.lastGood = feed; st.error = null;
+        try { localStorage.setItem(cacheKey(organ, snapshot.instance), JSON.stringify({ feed, at: new Date().toISOString() })); } catch (_) {}
+      } catch (_) { st.feed = null; st.error = 'Evidence unavailable'; }
+      finally { clearTimeout(timeout); paint(organ); }
+    }));
+  } finally { refreshing = false; }
+}
+for (const organ of snapshot.boards) paint(organ);
+refresh();
+setInterval(refresh, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+</script></body></html>
